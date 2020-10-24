@@ -1,3 +1,7 @@
+"""
+The main goal of this project is to create a handy, automated deployment tool based on SSH.
+To put it simply, it will have to deploy Docker containers on a remote host, and therefore configure it appropriately beforehand.
+"""
 import argparse
 import re
 import paramiko
@@ -7,21 +11,22 @@ import time
 from os import listdir
 from os.path import isfile, join
 
+
 class deployer:
+    """ deployer prog """
+
     def __init__(self):
+        """ initialisation """
         self.args = None
         self.v = False
         self.path = "./export/"
 
     def init(self):
+        """ argument parsing and checking """
         def ip_regex(arg_value, pat=re.compile(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$")):
+            """ check ip format """
             if not pat.match(arg_value):
                 raise argparse.ArgumentTypeError(f'{arg_value} is not a valid IPv4 adress')
-            return arg_value
-
-        def docker_regex(arg_value, pat=re.compile(r"^[0-9a-z]{12}$")):
-            if not pat.match(arg_value):
-                raise argparse.ArgumentTypeError(f'{arg_value} is not a valid service id')
             return arg_value
 
         parser = argparse.ArgumentParser()
@@ -43,6 +48,7 @@ class deployer:
         self.args = args
 
     def command(self, command = None):
+        """ launching command """
         if command is None:
             command = self.args["COMMAND"]
         c = {
@@ -57,6 +63,7 @@ class deployer:
         self.ssh_exec(c)
 
     def ssh_exec(self, command):
+        """ executing bash command throught ssh """
         fix = "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
         command = [fix] + [i for i in map(str.strip, command.split('\n')) if i != '']
         ssh = paramiko.SSHClient()
@@ -95,18 +102,22 @@ class deployer:
         t.kill()
 
     def printf(self, s):
+        """ print if verbose """
         if self.v:
             print(s)
 
     def printa(self, s, r = False):
+        """ print async message with animation """
         t = self.Wait(s, r)
         t.start()
         return t
 
     def all(self):
+        """ run all command """
         return self.initiate() + self.build() + self.deploy() + self.healthcheck()
 
     def config(self):
+        """ config """
         command =   """
                         apt-get update
                         apt-get install -y apt-transport-https ca-certificates curl
@@ -119,6 +130,7 @@ class deployer:
         return command
 
     def initiate(self):
+        """ scp """
         command =  f"""
                       rm -rf {self.path}
                       mkdir -p {self.path}
@@ -133,6 +145,7 @@ class deployer:
         return command
 
     def build(self):
+        """ docker build """
         serv = ['api', 'test'] if self.args["SERVICE"] == [] else self.args["SERVICE"]
         command =  ""
         for i in serv:
@@ -142,6 +155,7 @@ class deployer:
         return command
 
     def deploy(self):
+        """ docker run """
         serv = ['api', 'test'] if self.args["SERVICE"] == [] else self.args["SERVICE"]
         command =  ""
         for i in serv:
@@ -152,6 +166,7 @@ class deployer:
         return command
 
     def healthcheck(self):
+        """ docker inspect """
         serv = ['api', 'test'] if self.args["SERVICE"] == [] else self.args["SERVICE"]
         command =  ""
         for i in serv:
@@ -161,6 +176,7 @@ class deployer:
         return command
 
     def restart(self):
+        """ docker restart """
         serv = ['api', 'test'] if self.args["SERVICE"] == [] else self.args["SERVICE"]
         command =  ""
         for i in serv:
@@ -170,13 +186,16 @@ class deployer:
         return command
 
     class Wait(threading.Thread):
+        """ thread class used for animation """
         def __init__(self, s, r = False):
+            """init"""
             super().__init__()
             self._kill = threading.Event()
             self.message = s
             self.remove = r
 
         def run(self):
+            """ run the animation """
             animation = "|/-\\"
             p = True
             while p:
@@ -197,6 +216,7 @@ class deployer:
             sys.stdout.flush()
 
         def kill(self):
+            """ kill the thread """
             self._kill.set()
 
 if __name__ == '__main__':
