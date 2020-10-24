@@ -1,0 +1,4 @@
+#docker run -p 3032:8080
+FROM bitnami/apache:latest
+
+HEALTHCHECK --interval=5s --timeout=1s CMD curl --fail -s http://localhost:8080 || exit 1

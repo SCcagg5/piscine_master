@@ -1,0 +1,18 @@
+#docker run -v /var/run/docker.sock:/var/run/docker.sock -p 3031:80
+FROM python:latest
+
+LABEL maintainer="Courtel Eliot"
+LABEL maintainermail="eliot.courtel@wanadoo.fr"
+
+WORKDIR /home/autodata
+
+RUN pip install --upgrade pip
+COPY ./requirements.txt ./
+RUN pip install --upgrade -r requirements.txt
+RUN pip freeze > requirements.txt && cat requirements.txt
+
+COPY ./server.py ./
+
+HEALTHCHECK --interval=5s --timeout=1s CMD curl --fail -s http://localhost:80 || exit 1
+
+ENTRYPOINT python3 ./server.py
